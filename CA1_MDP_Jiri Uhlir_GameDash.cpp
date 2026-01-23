@@ -2,10 +2,24 @@
 //
 
 #include <iostream>
+#include <SFML/Graphics.hpp>
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    sf::RenderWindow window(sf::VideoMode({ 800, 600 }), "SFML 3 Test");
+    window.setFramerateLimit(60);
+
+    while (window.isOpen())
+    {
+        while (const auto event = window.pollEvent())
+        {
+            if (event->is<sf::Event::Closed>())
+                window.close();
+        }
+
+        window.clear();
+        window.display();
+    }
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
