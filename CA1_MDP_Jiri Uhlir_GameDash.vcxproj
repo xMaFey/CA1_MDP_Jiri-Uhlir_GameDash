@@ -137,10 +137,60 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="application.cpp" />
+    <ClCompile Include="button.cpp" />
     <ClCompile Include="CA1_MDP_Jiri Uhlir_GameDash.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)external\SFML-3.0.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)external\SFML-3.0.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="command.cpp" />
+    <ClCompile Include="command_queue.cpp" />
+    <ClCompile Include="component.cpp" />
+    <ClCompile Include="container.cpp" />
+    <ClCompile Include="game_state.cpp" />
+    <ClCompile Include="label.cpp" />
+    <ClCompile Include="menu_state.cpp" />
+    <ClCompile Include="pause_state.cpp" />
+    <ClCompile Include="player.cpp" />
+    <ClCompile Include="state.cpp" />
+    <ClCompile Include="statestack.cpp" />
+    <ClCompile Include="texture_holder.cpp" />
+    <ClCompile Include="title_state.cpp" />
+    <ClCompile Include="utility.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="action.hpp" />
+    <ClInclude Include="application.hpp" />
+    <ClInclude Include="button.hpp" />
+    <ClInclude Include="command.hpp" />
+    <ClInclude Include="command_queue.hpp" />
+    <ClInclude Include="component.hpp" />
+    <ClInclude Include="constants.hpp" />
+    <ClInclude Include="container.hpp" />
+    <ClInclude Include="fontID.hpp" />
+    <ClInclude Include="game_state.hpp" />
+    <ClInclude Include="label.hpp" />
+    <ClInclude Include="menu_options.hpp" />
+    <ClInclude Include="menu_state.hpp" />
+    <ClInclude Include="mission_status.hpp" />
+    <ClInclude Include="pause_state.hpp" />
+    <ClInclude Include="player.hpp" />
+    <ClInclude Include="receiver_categories.hpp" />
+    <ClInclude Include="resource_holder.hpp" />
+    <ClInclude Include="resource_identifiers.hpp" />
+    <ClInclude Include="stack_actions.hpp" />
+    <ClInclude Include="state.hpp" />
+    <ClInclude Include="stateid.hpp" />
+    <ClInclude Include="statestack.hpp" />
+    <ClInclude Include="texture_holder.hpp" />
+    <ClInclude Include="texture_id.hpp" />
+    <ClInclude Include="title_state.hpp" />
+    <ClInclude Include="utility.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CppProperties.json" />
+    <None Include="README.md" />
+    <None Include="resource_holder.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
