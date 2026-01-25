@@ -8,20 +8,27 @@
 #include "stateid.hpp"
 #include <algorithm>
 #include <sstream>
+#include <random>
 
-static bool circle_circle_hit(const sf::CircleShape& a, const sf::CircleShape& b)
+static float dist2(sf::Vector2f a, sf::Vector2f b)
 {
-    const sf::Vector2f pa = a.getPosition();
-    const sf::Vector2f pb = b.getPosition();
-    const float ra = a.getRadius();
-    const float rb = b.getRadius();
-
-    const float dx = pa.x - pb.x;
-    const float dy = pa.y - pb.y;
-    const float rr = ra + rb;
-
-    return (dx * dx + dy * dy) <= (rr * rr);
+    sf::Vector2f d = a - b;
+	return d.x * d.x + d.y * d.y;
 }
+
+//static bool circle_circle_hit(const sf::CircleShape& a, const sf::CircleShape& b)
+//{
+//    const sf::Vector2f pa = a.getPosition();
+//    const sf::Vector2f pb = b.getPosition();
+//    const float ra = a.getRadius();
+//    const float rb = b.getRadius();
+//
+//    const float dx = pa.x - pb.x;
+//    const float dy = pa.y - pb.y;
+//    const float rr = ra + rb;
+//
+//    return (dx * dx + dy * dy) <= (rr * rr);
+//}
 
 GameState::GameState(StateStack& stack, Context context)
     : State(stack, context)
@@ -43,18 +50,12 @@ GameState::GameState(StateStack& stack, Context context)
 
     m_spawn_points =
     { 
-        {150.f, 200.f},
-        {850.f, 200.f},
-        {150.f, 650.f},
-        {850.f, 650.f},
-        {500.f, 425.f}
+        {150.f, 140.f},
+        {150.f, 620.f},
+        {1130.f, 140.f},
+        {1130.f, 620.f},
+        {640.f, 360.f}
 };
-}
-
-static float dist2(sf::Vector2f a, sf::Vector2f b)
-{
-    sf::Vector2f d = a - b;
-    return d.x * d.x + d.y * d.y;
 }
 
 void GameState::build_map()
@@ -79,12 +80,65 @@ void GameState::build_map()
     make_wall(0.f, 0.f, 20.f, H);
     make_wall(W - 20.f, 0.f, 20.f, H);
 
-    // Maze-ish interior walls (tweak these freely)
+    // Maze interior walls
     make_wall(W * 0.20f, H * 0.18f, 24.f, H * 0.52f);
     make_wall(W * 0.35f, H * 0.30f, W * 0.30f, 24.f);
     make_wall(W * 0.55f, H * 0.18f, 24.f, H * 0.55f);
     make_wall(W * 0.25f, H * 0.72f, W * 0.35f, 24.f);
     make_wall(W * 0.72f, H * 0.40f, 24.f, H * 0.40f);
+}
+
+bool GameState::spawn_is_clear(sf::Vector2f p) const
+{
+    // probe circle
+    sf::CircleShape probe;
+	probe.setRadius(18.f);
+	probe.setOrigin({ 18.f, 18.f });
+	probe.setPosition(p);
+
+    for(const auto& w : m_walls)
+    {
+        if (PlayerEntity::circle_rect_intersect(probe, w))
+            return false;
+	}
+    return true;
+}
+
+sf::Vector2f GameState::pick_safe_spawn(const PlayerEntity& enemy) const
+{
+    // pick spawn far from enemy and not inside walls
+    const float min_dist = 200.f;
+	const float min_dist_sq = min_dist * min_dist;
+
+    // copy + shuffle spawn points
+	std::vector<sf::Vector2f> candidates = m_spawn_points;
+	static std::mt19937 rng{ std::random_device{}() };
+    std::shuffle(candidates.begin(), candidates.end(), rng);
+
+	// fist pass: far enough from enemy + clear
+    for (const auto& sp : candidates)
+    {
+        if(!spawn_is_clear(sp)) continue;
+        if (dist2(sp, enemy.position()) >= min_dist_sq)
+            return sp;
+	}
+
+    // choose the clear spawn that is farthest from enemy
+    sf::Vector2f best = candidates.front();
+    float best_d2 = -1.f;
+
+    for(const auto& sp : candidates)
+    {
+        if (!spawn_is_clear(sp)) continue;
+        const float d2 = dist2(sp, enemy.position());
+        if (d2 > best_d2)
+        {
+            best_d2 = d2;
+            best = sp;
+        }
+	}
+
+	return best;
 }
 
 void GameState::Draw()
@@ -96,7 +150,6 @@ void GameState::Draw()
     m_window.draw(bg);
 
     for (auto& w : m_walls) m_window.draw(w);
-
     for (auto& b : m_bullets) b.draw(m_window);
 
     m_p1.draw(m_window);
@@ -131,6 +184,7 @@ bool GameState::Update(sf::Time dt)
     {
         if (b.is_dead()) continue;
         const auto bb = b.shape().getGlobalBounds();
+
         for (const auto& w : m_walls)
         {
             if (bb.findIntersection(w.getGlobalBounds()).has_value())
@@ -141,37 +195,34 @@ bool GameState::Update(sf::Time dt)
         }
     }
 
-    // Bullet vs players -> score + respawn
+    // Bullet vs players - if invulnerable = ignore
+    auto hit_player = [&](const Bullet& bullet, const PlayerEntity& player) -> bool
+    {
+        const sf::Vector2f bp = bullet.shape().getPosition();
+        const sf::Vector2f pp = player.position();
+        const float rr = bullet.shape().getRadius() + 18.f; // player radius
+        const float dx = bp.x - pp.x;
+        const float dy = bp.y - pp.y;
+        return (dx * dx + dy * dy) <= (rr * rr);
+    };
+
     for (auto& b : m_bullets)
     {
         if (b.is_dead()) continue;
 
-        if (b.owner() == 1)
-        {  
-        }
-
-        // we can't access player circle directly (private); so do simple distance by positions:
-        auto hit_player = [&](const Bullet& bullet, const PlayerEntity& player) -> bool
-            {
-                const sf::Vector2f bp = bullet.shape().getPosition();
-                const sf::Vector2f pp = player.position();
-                const float rr = bullet.shape().getRadius() + 18.f; // player radius
-                const float dx = bp.x - pp.x;
-                const float dy = bp.y - pp.y;
-                return (dx * dx + dy * dy) <= (rr * rr);
-            };
-
-        if (b.owner() == 1 && hit_player(b, m_p2))
+        if (b.owner() == 1 && !m_p2.is_invulnerable() && hit_player(b, m_p2))
         {
             b.kill();
             ++m_kills_p1;
-            m_p2.respawn({ 260.f, 360.f });
+
+            m_p2.respawn(pick_safe_spawn(m_p1));
         }
-        else if (b.owner() == 2 && hit_player(b, m_p1))
+        else if (b.owner() == 2 && !m_p1.is_invulnerable() && hit_player(b, m_p1))
         {
             b.kill();
             ++m_kills_p2;
-            m_p1.respawn({ 1020.f, 360.f });
+
+            m_p1.respawn(pick_safe_spawn(m_p2));
         }
     }
 

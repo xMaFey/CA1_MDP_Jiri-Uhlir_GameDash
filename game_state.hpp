@@ -26,6 +26,10 @@ private:
     void keep_in_bounds(PlayerEntity& p);
     bool bullet_hits_player(const Bullet& b, const PlayerEntity& p) const;
 
+    // respawn helpers
+    sf::Vector2f pick_safe_spawn(const PlayerEntity& enemy) const;
+    bool spawn_is_clear(sf::Vector2f p) const;
+
 private:
     sf::RenderWindow& m_window;
 

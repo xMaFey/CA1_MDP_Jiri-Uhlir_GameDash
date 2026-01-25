@@ -5,6 +5,7 @@
 
 #pragma once
 #include <SFML/Graphics.hpp>
+
 class Utility
 {
 public:

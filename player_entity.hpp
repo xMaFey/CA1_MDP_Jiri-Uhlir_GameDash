@@ -35,10 +35,12 @@ public:
     void respawn(sf::Vector2f p);
     bool is_invulnerable() const { return m_invulnerable; }
 
+    static bool circle_rect_intersect(const sf::CircleShape& c, const sf::RectangleShape& r);
+
 private:
     void handle_input(sf::Vector2f& dir) const;
     void resolve_walls(const std::vector<sf::RectangleShape>& walls);
-    static bool circle_rect_intersect(const sf::CircleShape& c, const sf::RectangleShape& r);
+    
 
 private:
     sf::CircleShape m_body;
@@ -57,10 +59,12 @@ private:
     sf::Keyboard::Scancode m_down{};
     sf::Keyboard::Scancode m_left{};
     sf::Keyboard::Scancode m_right{};
+
     // actions
     sf::Keyboard::Scancode m_shoot{};
+
     // spawn protection
 	bool m_invulnerable = false;
+    sf::Time m_invulnerable_time = sf::Time::Zero;
     sf::Time m_invulnerable_duration = sf::seconds(1.5f);
-	sf::Time m_invulnerable_time = sf::Time::Zero;
 };

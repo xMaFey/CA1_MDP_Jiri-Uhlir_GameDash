@@ -86,6 +86,15 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
 
 void PlayerEntity::draw(sf::RenderTarget& target) const
 {
+    // visible invulnerability
+    if (m_invulnerable)
+    {
+        // blink effect
+        const int tick = static_cast<int>(m_invulnerable_time.asSeconds() * 10.f);
+        if (tick % 2 == 1)
+			return;
+    }
+
     target.draw(m_body);
 }
 
@@ -119,6 +128,7 @@ bool PlayerEntity::circle_rect_intersect(const sf::CircleShape& c, const sf::Rec
     const float radius = c.getRadius();
 
     const sf::FloatRect rb = r.getGlobalBounds();
+
     const float closest_x = std::clamp(cc.x, rb.position.x, rb.position.x + rb.size.x);
     const float closest_y = std::clamp(cc.y, rb.position.y, rb.position.y + rb.size.y);
 
