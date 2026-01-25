@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "button.hpp"
 #include "fontID.hpp"
 #include "utility.hpp"
@@ -89,4 +94,10 @@ void gui::Button::draw(sf::RenderTarget& target, sf::RenderStates states) const
     states.transform *= getTransform();
     target.draw(m_sprite, states);
     target.draw(m_text, states);
+}
+
+bool gui::Button::Contains(sf::Vector2f point_in_parent_space) const
+{
+	const sf::Vector2f local = getInverseTransform().transformPoint(point_in_parent_space);
+    return m_sprite.getGlobalBounds().contains(local);
 }

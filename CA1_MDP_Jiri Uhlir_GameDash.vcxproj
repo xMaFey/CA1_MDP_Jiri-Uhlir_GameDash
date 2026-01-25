@@ -138,6 +138,7 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="application.cpp" />
+    <ClCompile Include="bullet.cpp" />
     <ClCompile Include="button.cpp" />
     <ClCompile Include="CA1_MDP_Jiri Uhlir_GameDash.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)external\SFML-3.0.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -152,6 +153,8 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClCompile Include="menu_state.cpp" />
     <ClCompile Include="pause_state.cpp" />
     <ClCompile Include="player.cpp" />
+    <ClCompile Include="player_entity.cpp" />
+    <ClCompile Include="settings_state.cpp" />
     <ClCompile Include="state.cpp" />
     <ClCompile Include="statestack.cpp" />
     <ClCompile Include="texture_holder.cpp" />
@@ -161,6 +164,7 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
   <ItemGroup>
     <ClInclude Include="action.hpp" />
     <ClInclude Include="application.hpp" />
+    <ClInclude Include="bullet.hpp" />
     <ClInclude Include="button.hpp" />
     <ClInclude Include="command.hpp" />
     <ClInclude Include="command_queue.hpp" />
@@ -175,9 +179,11 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClInclude Include="mission_status.hpp" />
     <ClInclude Include="pause_state.hpp" />
     <ClInclude Include="player.hpp" />
+    <ClInclude Include="player_entity.hpp" />
     <ClInclude Include="receiver_categories.hpp" />
     <ClInclude Include="resource_holder.hpp" />
     <ClInclude Include="resource_identifiers.hpp" />
+    <ClInclude Include="settings_state.hpp" />
     <ClInclude Include="stack_actions.hpp" />
     <ClInclude Include="state.hpp" />
     <ClInclude Include="stateid.hpp" />

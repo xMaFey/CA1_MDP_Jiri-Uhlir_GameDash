@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "command_queue.hpp"
 #include "statestack.hpp"
 

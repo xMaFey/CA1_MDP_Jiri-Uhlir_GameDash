@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #pragma once
 #include <SFML/System/Clock.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>

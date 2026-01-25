@@ -1,5 +1,12 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #pragma once
 #include "component.hpp"
+#include <vector>
+
 namespace gui
 {
 	class Container : public Component
@@ -19,6 +26,8 @@ namespace gui
 		void Select(std::size_t index);
 		void SelectNext();
 		void SelectPrevious();
+		void UpdateSelectionFromMouse(sf::Vector2f mouse_point_in_container_space);
+		void ClearSelection();
 
 	private:
 		std::vector<Component::Ptr> m_children;

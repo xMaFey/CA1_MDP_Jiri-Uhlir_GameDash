@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "menu_state.hpp"
 #include "fontID.hpp"
 #include <SFML/Graphics/Text.hpp>

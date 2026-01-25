@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #pragma once
 #include "state.hpp"
 #include <SFML/Graphics/Sprite.hpp>

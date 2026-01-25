@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "Utility.hpp"
 #define _USE_MATH_DEFINES
 #include <math.h>

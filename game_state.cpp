@@ -1,78 +1,210 @@
 // ============================================
 // Name: Jiri Uhlir
 // Student ID: D00260335
-// Module: Multiplayer Distributed Programming
-// CA: CA1
-// File: game_state.cpp
-// Description: 2 local players moving on screen. ESC pauses.
 // ============================================
 
 #include "game_state.hpp"
+#include "fontID.hpp"
 #include "stateid.hpp"
 #include <algorithm>
+#include <sstream>
+
+static bool circle_circle_hit(const sf::CircleShape& a, const sf::CircleShape& b)
+{
+    const sf::Vector2f pa = a.getPosition();
+    const sf::Vector2f pb = b.getPosition();
+    const float ra = a.getRadius();
+    const float rb = b.getRadius();
+
+    const float dx = pa.x - pb.x;
+    const float dy = pa.y - pb.y;
+    const float rr = ra + rb;
+
+    return (dx * dx + dy * dy) <= (rr * rr);
+}
 
 GameState::GameState(StateStack& stack, Context context)
     : State(stack, context)
     , m_window(*context.window)
+    , m_hud(context.fonts->Get(FontID::kMain))
 {
-    // Player 1: circle
-    m_p1.setRadius(25.f);
-    m_p1.setOrigin({ 25.f, 25.f });
-    m_p1.setPosition({ 200.f, 300.f });
+    build_map();
 
-    // Player 2: circle
-    m_p2.setRadius(25.f);
-    m_p2.setOrigin({ 25.f, 25.f });
-    m_p2.setPosition({ 800.f, 300.f });
+    m_p1.set_controls_arrows_j();
+    m_p1.set_color(sf::Color(70, 200, 255));
+    m_p1.set_position({ 1020.f, 360.f });
+
+    m_p2.set_controls_wasd_backtick();
+    m_p2.set_color(sf::Color(255, 140, 90));
+    m_p2.set_position({ 260.f, 360.f });
+
+    m_hud.setCharacterSize(22);
+    m_hud.setPosition({ 14.f, 10.f });
+
+    m_spawn_points =
+    { 
+        {150.f, 200.f},
+        {850.f, 200.f},
+        {150.f, 650.f},
+        {850.f, 650.f},
+        {500.f, 425.f}
+};
+}
+
+static float dist2(sf::Vector2f a, sf::Vector2f b)
+{
+    sf::Vector2f d = a - b;
+    return d.x * d.x + d.y * d.y;
+}
+
+void GameState::build_map()
+{
+    m_walls.clear();
+
+    auto make_wall = [&](float x, float y, float w, float h)
+        {
+            sf::RectangleShape r;
+            r.setSize({ w, h });
+            r.setPosition({ x, y });
+            r.setFillColor(sf::Color(40, 40, 55));
+            m_walls.push_back(r);
+        };
+
+    const float W = static_cast<float>(m_window.getSize().x);
+    const float H = static_cast<float>(m_window.getSize().y);
+
+    // Borders
+    make_wall(0.f, 0.f, W, 20.f);
+    make_wall(0.f, H - 20.f, W, 20.f);
+    make_wall(0.f, 0.f, 20.f, H);
+    make_wall(W - 20.f, 0.f, 20.f, H);
+
+    // Maze-ish interior walls (tweak these freely)
+    make_wall(W * 0.20f, H * 0.18f, 24.f, H * 0.52f);
+    make_wall(W * 0.35f, H * 0.30f, W * 0.30f, 24.f);
+    make_wall(W * 0.55f, H * 0.18f, 24.f, H * 0.55f);
+    make_wall(W * 0.25f, H * 0.72f, W * 0.35f, 24.f);
+    make_wall(W * 0.72f, H * 0.40f, 24.f, H * 0.40f);
 }
 
 void GameState::Draw()
 {
-    m_window.draw(m_p1);
-    m_window.draw(m_p2);
+    // Background
+    sf::RectangleShape bg;
+    bg.setSize(sf::Vector2f(m_window.getSize()));
+    bg.setFillColor(sf::Color(18, 18, 28));
+    m_window.draw(bg);
+
+    for (auto& w : m_walls) m_window.draw(w);
+
+    for (auto& b : m_bullets) b.draw(m_window);
+
+    m_p1.draw(m_window);
+    m_p2.draw(m_window);
+
+    m_window.draw(m_hud);
 }
 
 bool GameState::Update(sf::Time dt)
 {
-    const float s = m_speed * dt.asSeconds();
+    // Update players with wall collision
+    m_p1.update(dt, m_walls);
+    m_p2.update(dt, m_walls);
 
-    // Player 1 movement (WASD)
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::W)) m_p1.move({ 0.f, -s });
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::S)) m_p1.move({ 0.f,  s });
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::A)) m_p1.move({ -s, 0.f });
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::D)) m_p1.move({ s, 0.f });
+    // Shooting
+    if (m_p1.can_shoot())
+    {
+        m_p1.on_shot_fired();
+        m_bullets.emplace_back(m_p1.position(), m_p1.facing_dir(), 1);
+    }
+    if (m_p2.can_shoot())
+    {
+        m_p2.on_shot_fired();
+        m_bullets.emplace_back(m_p2.position(), m_p2.facing_dir(), 2);
+    }
 
-    // Player 2 movement (Arrow keys)
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Up))    m_p2.move({ 0.f, -s });
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Down))  m_p2.move({ 0.f,  s });
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Left))  m_p2.move({ -s, 0.f });
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Right)) m_p2.move({ s, 0.f });
+    // Update bullets
+    for (auto& b : m_bullets) b.update(dt);
 
-    clamp_to_window(m_p1);
-    clamp_to_window(m_p2);
+    // Bullet vs walls -> kill bullet
+    for (auto& b : m_bullets)
+    {
+        if (b.is_dead()) continue;
+        const auto bb = b.shape().getGlobalBounds();
+        for (const auto& w : m_walls)
+        {
+            if (bb.findIntersection(w.getGlobalBounds()).has_value())
+            {
+                b.kill();
+                break;
+            }
+        }
+    }
+
+    // Bullet vs players -> score + respawn
+    for (auto& b : m_bullets)
+    {
+        if (b.is_dead()) continue;
+
+        if (b.owner() == 1)
+        {  
+        }
+
+        // we can't access player circle directly (private); so do simple distance by positions:
+        auto hit_player = [&](const Bullet& bullet, const PlayerEntity& player) -> bool
+            {
+                const sf::Vector2f bp = bullet.shape().getPosition();
+                const sf::Vector2f pp = player.position();
+                const float rr = bullet.shape().getRadius() + 18.f; // player radius
+                const float dx = bp.x - pp.x;
+                const float dy = bp.y - pp.y;
+                return (dx * dx + dy * dy) <= (rr * rr);
+            };
+
+        if (b.owner() == 1 && hit_player(b, m_p2))
+        {
+            b.kill();
+            ++m_kills_p1;
+            m_p2.respawn({ 260.f, 360.f });
+        }
+        else if (b.owner() == 2 && hit_player(b, m_p1))
+        {
+            b.kill();
+            ++m_kills_p2;
+            m_p1.respawn({ 1020.f, 360.f });
+        }
+    }
+
+    // Remove dead bullets
+    m_bullets.erase(
+        std::remove_if(m_bullets.begin(), m_bullets.end(), [](const Bullet& b) { return b.is_dead(); }),
+        m_bullets.end()
+    );
+
+    // HUD
+    std::ostringstream ss;
+    ss << "P1 Kills: " << m_kills_p1 << "   |   P2 Kills: " << m_kills_p2 << "   (First to " << m_kills_to_win << ")";
+    m_hud.setString(ss.str());
+
+    // Win condition
+    if (m_kills_p1 >= m_kills_to_win || m_kills_p2 >= m_kills_to_win)
+    {
+        // Later: GameOverState with winner
+        RequestStackClear();
+        RequestStackPush(StateID::kMenu);
+    }
 
     return true;
 }
 
 bool GameState::HandleEvent(const sf::Event& event)
 {
-    // ESC -> pause
-    const auto* keypress = event.getIf<sf::Event::KeyPressed>();
-    if (keypress && keypress->scancode == sf::Keyboard::Scancode::Escape)
+    if (const auto* keypress = event.getIf<sf::Event::KeyPressed>())
     {
-        RequestStackPush(StateID::kPause);
+        if (keypress->scancode == sf::Keyboard::Scancode::Escape)
+        {
+            RequestStackPush(StateID::kPause);
+        }
     }
     return true;
-}
-
-void GameState::clamp_to_window(sf::CircleShape& shape)
-{
-    const float r = shape.getRadius();
-    sf::Vector2f p = shape.getPosition();
-    const sf::Vector2u ws = m_window.getSize();
-
-    p.x = std::clamp(p.x, r, ws.x - r);
-    p.y = std::clamp(p.y, r, ws.y - r);
-
-    shape.setPosition(p);
 }

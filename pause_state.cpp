@@ -1,5 +1,12 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "pause_state.hpp"
 #include "utility.hpp"
+#include "fontID.hpp"
+#include "stateid.hpp"
 
 PauseState::PauseState(StateStack& stack, Context context) : State(stack, context), m_paused_text(context.fonts->Get(FontID::kMain)), m_instruction_text(context.fonts->Get(FontID::kMain))
 {
@@ -13,6 +20,27 @@ PauseState::PauseState(StateStack& stack, Context context) : State(stack, contex
     m_instruction_text.setString("Press backspace to return to the main menu, esc to return to the game");
     Utility::CentreOrigin(m_instruction_text);
     m_instruction_text.setPosition(sf::Vector2f(0.5f * view_size.x, 0.6f * view_size.y));
+
+    // Resume button
+    auto resume = std::make_shared<gui::Button>(*context.fonts, *context.textures);
+    resume->SetText("Resume");
+    resume->SetCallback([this]()
+        {
+            RequestStackPop();
+        });
+    resume->setPosition(sf::Vector2f(0.5f * view_size.x, 0.50f * view_size.y));
+    m_gui.Pack(resume);
+
+    // Back to menu button
+    auto back = std::make_shared<gui::Button>(*context.fonts, *context.textures);
+    back->SetText("Back to Menu");
+    back->SetCallback([this]()
+        {
+            RequestStackClear();
+            RequestStackPush(StateID::kMenu);
+        });
+    back->setPosition(sf::Vector2f(0.5f * view_size.x, 0.62f * view_size.y));
+    m_gui.Pack(back);
 }
 
 void PauseState::Draw()
@@ -27,6 +55,7 @@ void PauseState::Draw()
     window.draw(backgroundShape);
     window.draw(m_paused_text);
     window.draw(m_instruction_text);
+    window.draw(m_gui);
 }
 
 bool PauseState::Update(sf::Time dt)
@@ -36,6 +65,8 @@ bool PauseState::Update(sf::Time dt)
 
 bool PauseState::HandleEvent(const sf::Event& event)
 {
+	m_gui.HandleEvent(event);
+
     const auto* key_pressed = event.getIf<sf::Event::KeyPressed>();
     if (!key_pressed)
     {

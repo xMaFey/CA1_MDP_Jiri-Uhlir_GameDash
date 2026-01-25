@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "title_state.hpp"
 #include "fontID.hpp"
 #include "utility.hpp"
@@ -33,11 +38,22 @@ bool TitleState::Update(sf::Time dt)
 
 bool TitleState::HandleEvent(const sf::Event& event)
 {
-    const auto* key_pressed = event.getIf<sf::Event::KeyPressed>();
-    if (key_pressed)
+    // Any key
+    if (event.is<sf::Event::KeyPressed>())
     {
         RequestStackPop();
         RequestStackPush(StateID::kMenu);
+        return true;
     }
+
+    // Any mouse click
+    if (event.is<sf::Event::MouseButtonPressed>())
+    {
+        RequestStackPop();
+        RequestStackPush(StateID::kMenu);
+        return true;
+    }
+
     return true;
 }
+

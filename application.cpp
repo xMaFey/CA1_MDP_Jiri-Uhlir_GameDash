@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "application.hpp"
 #include "constants.hpp"
 #include "fontid.hpp"
@@ -5,8 +10,9 @@
 #include "title_state.hpp"
 #include "menu_state.hpp"
 #include "pause_state.hpp"
+#include "settings_state.hpp"
 
-Application::Application() : m_window(sf::VideoMode({ 1024, 768 }), "States", sf::Style::Close), m_stack(State::Context(m_window, m_textures, m_fonts, m_player))
+Application::Application() : m_window(sf::VideoMode({ 1280, 720 }), "States", sf::Style::Close), m_stack(State::Context(m_window, m_textures, m_fonts, m_player))
 {
 	m_window.setKeyRepeatEnabled(false);
 	m_fonts.Load(FontID::kMain, "Media/Fonts/Sansation.ttf");
@@ -74,6 +80,7 @@ void Application::RegisterStates()
 	m_stack.RegisterState<MenuState>(StateID::kMenu);
 	m_stack.RegisterState<GameState>(StateID::kGame);
 	m_stack.RegisterState<PauseState>(StateID::kPause);
+	m_stack.RegisterState<SettingsState>(StateID::kSettings);
 }
 
 

@@ -1,3 +1,8 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #include "texture_holder.hpp"
 
 void TextureHolder::Load(const TextureID id, const std::string& filename)

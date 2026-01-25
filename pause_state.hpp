@@ -1,5 +1,12 @@
+// ============================================
+// Name: Jiri Uhlir
+// Student ID: D00260335
+// ============================================
+
 #pragma once
 #include "State.hpp"
+#include "container.hpp"
+#include "button.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 
@@ -14,5 +21,6 @@ public:
 private:
 	sf::Text m_paused_text;
 	sf::Text m_instruction_text;
+	gui::Container m_gui;
 };
 
