@@ -93,6 +93,9 @@
     <ClCompile Include="player.cpp">
       <Filter>Core\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="game_over_state.cpp">
+      <Filter>Core\States</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="title_state.hpp">
@@ -184,6 +187,9 @@
     </ClInclude>
     <ClInclude Include="player.hpp">
       <Filter>Core\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="game_over_state.hpp">
+      <Filter>Core\States</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

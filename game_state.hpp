@@ -23,8 +23,8 @@ public:
 
 private:
     void build_map();
-    void keep_in_bounds(PlayerEntity& p);
-    bool bullet_hits_player(const Bullet& b, const PlayerEntity& p) const;
+    //void keep_in_bounds(PlayerEntity& p);
+    //bool bullet_hits_player(const Bullet& b, const PlayerEntity& p) const;
 
     // respawn helpers
     sf::Vector2f pick_safe_spawn(const PlayerEntity& enemy) const;

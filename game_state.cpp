@@ -10,10 +10,66 @@
 #include <sstream>
 #include <random>
 
+static int g_winner = 1;
+
 static float dist2(sf::Vector2f a, sf::Vector2f b)
 {
     sf::Vector2f d = a - b;
 	return d.x * d.x + d.y * d.y;
+}
+
+static bool rect_circle_hit(const sf::FloatRect& r, sf::Vector2f c, float cr)
+{
+	const float closest_x = std::clamp(c.x, r.position.x, r.position.x + r.size.x);
+	const float closest_y = std::clamp(c.y, r.position.y, r.position.y + r.size.y);
+
+	const float dx = c.x - closest_x;
+	const float dy = c.y - closest_y;
+
+	return (dx * dx + dy * dy) <= (cr * cr);
+}
+static bool segment_intersects_rect(sf::Vector2f a, sf::Vector2f b, const sf::FloatRect& r)
+{
+    // Liang-Barsky algorithm
+    const float dx = b.x - a.x;
+	const float dy = b.y - a.y;
+
+	float t0 = 0.f, t1 = 1.f;
+
+    auto clip = [&](float p, float q) -> bool
+        {
+            if (p == 0.f)
+                return q >= 0.f;
+            const float t = q / p;
+            if (p < 0.f)
+            {
+                if (t > t1) return false;
+                if (t > t0) t0 = t;
+            }
+            else
+            {
+                if (t < t0) return false;
+                if (t < t1) t1 = t;
+            }
+            return true;
+        };
+
+    if (!clip( -dx, a.x - r.position.x)) return false;
+	if (!clip(dx, (r.position.x) + r.size.x - a.x)) return false;
+	if (!clip(-dy, a.y - r.position.y)) return false;
+    if (!clip(dy, (r.position.y + r.size.y) - a.y)) return false;
+
+    return true;
+}
+
+static bool segment_hits_any_wall(sf::Vector2f a, sf::Vector2f b, const std::vector<sf::RectangleShape>& walls)
+{
+    for (const auto& w : walls)
+    {
+        if (segment_intersects_rect(a, b, w.getGlobalBounds()))
+            return true;
+    }
+	return false;
 }
 
 //static bool circle_circle_hit(const sf::CircleShape& a, const sf::CircleShape& b)
@@ -37,11 +93,11 @@ GameState::GameState(StateStack& stack, Context context)
 {
     build_map();
 
-    m_p1.set_controls_arrows_j();
+    m_p1.set_controls_arrows();
     m_p1.set_color(sf::Color(70, 200, 255));
     m_p1.set_position({ 1020.f, 360.f });
 
-    m_p2.set_controls_wasd_backtick();
+    m_p2.set_controls_wasd();
     m_p2.set_color(sf::Color(255, 140, 90));
     m_p2.set_position({ 260.f, 360.f });
 
@@ -197,14 +253,14 @@ bool GameState::Update(sf::Time dt)
 
     // Bullet vs players - if invulnerable = ignore
     auto hit_player = [&](const Bullet& bullet, const PlayerEntity& player) -> bool
-    {
-        const sf::Vector2f bp = bullet.shape().getPosition();
-        const sf::Vector2f pp = player.position();
-        const float rr = bullet.shape().getRadius() + 18.f; // player radius
-        const float dx = bp.x - pp.x;
-        const float dy = bp.y - pp.y;
-        return (dx * dx + dy * dy) <= (rr * rr);
-    };
+        {
+            const sf::Vector2f bp = bullet.shape().getPosition();
+            const sf::Vector2f pp = player.position();
+            const float rr = bullet.shape().getRadius() + 18.f; // player radius
+            const float dx = bp.x - pp.x;
+            const float dy = bp.y - pp.y;
+            return (dx * dx + dy * dy) <= (rr * rr);
+        };
 
     for (auto& b : m_bullets)
     {
@@ -226,29 +282,68 @@ bool GameState::Update(sf::Time dt)
         }
     }
 
+    // melee punch (rectangle)
+    const float player_radius = 18.f;
+
+    // P1 melee hits P2
+    if (m_p1.is_melee_active() && !m_p2.is_invulnerable())
+    {
+        if (rect_circle_hit(m_p1.get_melee_hitbox_world(), m_p2.position(), player_radius))
+        {
+			if (!segment_hits_any_wall(m_p1.position(), m_p2.position(), m_walls))
+            {
+                ++m_kills_p1;
+                m_p2.respawn(pick_safe_spawn(m_p1));
+            }
+        }
+    }
+
+    // P2 melee hits P1
+    if (m_p2.is_melee_active() && !m_p1.is_invulnerable())
+    {
+        if (rect_circle_hit(m_p2.get_melee_hitbox_world(), m_p1.position(), player_radius))
+        {
+            if (!segment_hits_any_wall(m_p2.position(), m_p1.position(), m_walls))
+            {
+                ++m_kills_p2;
+                m_p1.respawn(pick_safe_spawn(m_p2));
+            }
+        }
+    }
+    
     // Remove dead bullets
     m_bullets.erase(
         std::remove_if(m_bullets.begin(), m_bullets.end(), [](const Bullet& b) { return b.is_dead(); }),
         m_bullets.end()
     );
-
+    
     // HUD
     std::ostringstream ss;
     ss << "P1 Kills: " << m_kills_p1 << "   |   P2 Kills: " << m_kills_p2 << "   (First to " << m_kills_to_win << ")";
     m_hud.setString(ss.str());
-
+            
     // Win condition
     if (m_kills_p1 >= m_kills_to_win || m_kills_p2 >= m_kills_to_win)
     {
-        // Later: GameOverState with winner
-        RequestStackClear();
-        RequestStackPush(StateID::kMenu);
+        // store winner in Context Player
+        if (GetContext().player)
+        {
+            if (m_kills_p1 >= m_kills_to_win)
+                GetContext().player->SetWinner(Player::Winner::kP1);
+            else
+                GetContext().player->SetWinner(Player::Winner::kP2);
+        }
+
+        // go to win screen
+		RequestStackClear();
+        RequestStackPush(StateID::kGameOver);
+        return false;
     }
 
     return true;
 }
 
-bool GameState::HandleEvent(const sf::Event& event)
+bool GameState::HandleEvent(const sf::Event & event)
 {
     if (const auto* keypress = event.getIf<sf::Event::KeyPressed>())
     {

@@ -10,9 +10,11 @@ enum class TextureID
 	kEagle,
 	kRaptor,
 	kTitleScreen,
+
 	kButtonNormal,
 	kButtonSelected,
 	kButtonActivated,
+
 	kBullet,
 	kMissile,
 	kHealthRefill,
@@ -20,5 +22,9 @@ enum class TextureID
 	kFireSpread,
 	kFireRate,
 	kFinishLine,
+
+	kBluePlayerWin,
+	kOrangePlayerWin,
+
 	kNumTextures,
 };
