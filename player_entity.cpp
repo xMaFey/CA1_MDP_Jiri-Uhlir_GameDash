@@ -150,9 +150,12 @@ void PlayerEntity::set_anim(AnimState st, const std::string& dir)
     m_sprite.emplace(it->second[m_frame_index]);
 	m_sprite->setTexture(it->second[m_frame_index], true);
 
-    // center origin (assumes frame size constant)
+    // center origin
     auto size = m_sprite->getTexture().getSize();
-    m_sprite->setOrigin({ size.x * 0.5f, size.y * 0.5f });
+    m_sprite->setOrigin({
+        size.x * 0.5f,
+        static_cast<float>(size.y) - feetPadding
+    });
 	m_sprite->setScale({ 2.f, 2.f });
 }
 
