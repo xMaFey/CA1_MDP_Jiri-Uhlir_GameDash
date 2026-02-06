@@ -12,6 +12,12 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <vector>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <unordered_map>
+#include <string>
+#include <filesystem>
+#include <optional>
 
 class PlayerEntity
 {
@@ -45,12 +51,48 @@ public:
     // Wall colision
     static bool circle_rect_intersect(const sf::CircleShape& c, const sf::RectangleShape& r);
 
+    // Call for blue wizard
+    void set_animation_root(const std::string& root);
+
 private:
     void handle_input(sf::Vector2f& dir) const;
     void resolve_walls(const std::vector<sf::RectangleShape>& walls);
+
+    enum class AnimState
+    {
+        Idle,
+        Run,
+        Shoot,
+        Melee,
+        Dash
+	};
+
+    // animation loading
+    void load_blue_wizard_animations();
+    static std::string dir_to_folder(sf::Vector2f dir);
+
+    // animation playback
+    void set_anim(AnimState st, const std::string& dirFolder);
+    void advance_anim(sf::Time dt);
     
 
 private:
+    //render animated sprite
+	std::optional<sf::Sprite> m_sprite;
+
+    //root path for animations
+    std::string m_anim_root;
+
+    //key: anim state + direction
+    std::unordered_map<std::string, std::vector<sf::Texture>> m_anim_textures;
+
+	AnimState m_current_anim_state = AnimState::Idle;
+	std::string m_current_anim_dir = "east";
+
+    std::size_t m_frame_index = 0;
+    sf::Time m_frame_time = sf::seconds(0.10f);
+	sf::Time m_frame_timer = sf::Time::Zero;
+
     sf::CircleShape m_body;
     sf::Vector2f m_velocity{ 0.f, 0.f };
     sf::Vector2f m_last_dir{ 1.f, 0.f };

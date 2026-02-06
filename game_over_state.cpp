@@ -12,7 +12,7 @@
 
 GameOverState::GameOverState(StateStack& stack, Context context)
     : State(stack, context)
-    , m_background_sprite(context.textures->Get(TextureID::kBluePlayerWin))
+    , m_background_sprite(context.textures->Get(TextureID::kOrangePlayerWin))
 	, m_overlay()
     , m_title(context.fonts->Get(FontID::kMain))
     , m_hint(context.fonts->Get(FontID::kMain))
@@ -24,7 +24,7 @@ GameOverState::GameOverState(StateStack& stack, Context context)
 
     if(winner == Player::Winner::kP2)
     {
-        m_background_sprite.setTexture(context.textures->Get(TextureID::kOrangePlayerWin));
+        m_background_sprite.setTexture(context.textures->Get(TextureID::kBluePlayerWin));
     }
 
 	// scale background to fit view

@@ -93,13 +93,14 @@ GameState::GameState(StateStack& stack, Context context)
 {
     build_map();
 
-    m_p1.set_controls_arrows();
-    m_p1.set_color(sf::Color(70, 200, 255));
-    m_p1.set_position({ 1020.f, 360.f });
+    m_p1.set_controls_wasd();
+    m_p1.set_color(sf::Color(255, 140, 90));
+    m_p1.set_position({ 260.f, 360.f });
 
-    m_p2.set_controls_wasd();
-    m_p2.set_color(sf::Color(255, 140, 90));
-    m_p2.set_position({ 260.f, 360.f });
+    m_p2.set_controls_arrows();
+    m_p2.set_color(sf::Color(70, 200, 255));
+    m_p2.set_position({ 1020.f, 360.f });
+	m_p2.set_animation_root("Media/Assets/Characters/wizard_blue/animations/");
 
     m_hud.setCharacterSize(22);
     m_hud.setPosition({ 14.f, 10.f });

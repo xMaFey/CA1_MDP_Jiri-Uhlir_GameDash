@@ -7,20 +7,176 @@
 #include <algorithm>
 #include <cmath>
 #include <SFML/Window/Keyboard.hpp>
+#include <iostream>
 
 PlayerEntity::PlayerEntity()
 {
     m_body.setRadius(18.f);
     m_body.setOrigin({ 18.f, 18.f });
     m_body.setPosition({ 100.f, 100.f });
+	m_body.setFillColor(sf::Color::Transparent);
+	m_body.setOutlineThickness(2.f);
+	m_body.setOutlineColor(sf::Color(255, 255, 255, 140));
 
     // default controls (can be overridden)
     set_controls_wasd();
 }
 
+static std::vector<std::filesystem::path> sorted_pngs(const std::filesystem::path& folder)
+{
+    std::vector<std::filesystem::path> files;
+    if (!std::filesystem::exists(folder)) return files;
+
+    for (auto& e : std::filesystem::directory_iterator(folder))
+    {
+        if (!e.is_regular_file()) continue;
+        auto p = e.path();
+        if (p.extension() == ".png")
+			files.push_back(p);
+    }
+
+    std::sort(files.begin(), files.end());
+    return files;
+}
+
+void PlayerEntity::set_animation_root(const std::string& root)
+{
+    m_anim_root = root;
+    load_blue_wizard_animations();
+
+    // default pose
+    set_anim(AnimState::Idle, "east");
+
+    std::cout << "Anim root:" << m_anim_root << "\n";
+}
+
+std::string PlayerEntity::dir_to_folder(sf::Vector2f d)
+{
+    // if no direction, keep something stable
+    const float ax = std::abs(d.x);
+    const float ay = std::abs(d.y);
+
+    if (ax < 0.0001f && ay < 0.0001f)
+        return "east";
+
+	// 8-directional
+    const float a = std::atan2(d.y, d.x);
+    float ang = a;
+    // split into 8 sectors
+    // sector 0 = east, then counter-clockwise
+    int sector = static_cast<int>(std::round(ang / (3.14159f / 4.f)));
+	// normalize to [0, 7]
+	sector = (sector + 8) % 8;
+
+    switch (sector)
+    {
+    case 0: return "east";
+    case 1: return "south_east";
+    case 2: return "south";
+    case 3: return "south_west";
+    case 4: return "west";
+    case 5: return "north_west";
+    case 6: return "north";
+    case 7: return "north_east";
+	}
+	return "east";
+}
+
+void PlayerEntity::load_blue_wizard_animations()
+{
+    const std::vector<std::pair<std::string, std::string>> packs = {
+        { "idle", "fight_stance"},
+        { "run", "running"}
+    };
+
+    const std::vector<std::string> dirs = {
+        "east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"
+    };
+
+    for (auto& [keyName, folderName] : packs)
+    {
+        for (auto& dir : dirs)
+        {
+            const std::filesystem::path dirPath = std::filesystem::path(m_anim_root) / folderName / dir;
+
+			auto frames = sorted_pngs(dirPath);
+            if (frames.empty())
+                continue;
+
+			std::vector<sf::Texture> textures;
+            textures.reserve(frames.size());
+
+            for (auto& f : frames)
+            {
+                sf::Texture t;
+                if (!t.loadFromFile(f.string()))
+                {
+                    // handle error
+                    continue;
+                }
+				textures.push_back(std::move(t));
+			}
+
+            if (!textures.empty())
+            {
+                m_anim_textures[keyName + "/" + dir] = std::move(textures);
+            }
+        }
+    }
+
+    std::cout << "Loaded anim clips: " << m_anim_textures.size() << "\n";
+    for (auto& [k, v] : m_anim_textures)
+        std::cout << "  " << k << " frames=" << v.size() << "\n";
+
+}
+
+void PlayerEntity::set_anim(AnimState st, const std::string& dir)
+{
+    m_current_anim_state = st;
+    m_current_anim_dir = dir;
+
+    const std::string key = (st == AnimState::Idle ? "idle/" : "run/") + dir;
+
+    auto it = m_anim_textures.find(key);
+    if (it == m_anim_textures.end() || it->second.empty())
+    {
+    std::cout << "Missing anim key: " << key << "\n";
+    return;
+    }
+
+    m_frame_index = 0;
+    m_frame_timer = sf::Time::Zero;
+
+    m_sprite.emplace(it->second[m_frame_index]);
+	m_sprite->setTexture(it->second[m_frame_index], true);
+
+    // center origin (assumes frame size constant)
+    auto size = m_sprite->getTexture().getSize();
+    m_sprite->setOrigin({ size.x * 0.5f, size.y * 0.5f });
+	m_sprite->setScale({ 2.f, 2.f });
+}
+
+void PlayerEntity::advance_anim(sf::Time dt)
+{
+    const std::string key = (m_current_anim_state == AnimState::Idle ? "idle/" : "run/") + m_current_anim_dir;
+    auto it = m_anim_textures.find(key);
+    if (it == m_anim_textures.end() || it->second.empty())
+        return;
+
+    m_frame_timer += dt;
+    if (m_frame_timer < m_frame_time)
+        return;
+
+    m_frame_timer = sf::Time::Zero;
+    m_frame_index = (m_frame_index + 1) % it->second.size();
+    if(m_sprite)
+        m_sprite->setTexture(it->second[m_frame_index], true);
+}
+
+
 void PlayerEntity::set_position(sf::Vector2f p) { m_body.setPosition(p); }
 sf::Vector2f PlayerEntity::position() const { return m_body.getPosition(); }
-void PlayerEntity::set_color(const sf::Color& c) { m_body.setFillColor(c); }
+void PlayerEntity::set_color(const sf::Color& c) { m_body.setOutlineColor(c); }
 
 void PlayerEntity::set_controls_arrows()
 {
@@ -148,6 +304,27 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
             m_melee_active = false;
         }
 	}
+
+    // choose anim + direction
+	const bool moving = (m_velocity.x != 0.f || m_velocity.y != 0.f);
+    const std::string dirFolder = dir_to_folder(m_last_dir);
+
+    if (moving)
+    {
+        if(m_current_anim_state != AnimState::Run || m_current_anim_dir != dirFolder)
+			set_anim(AnimState::Run, dirFolder);
+    }
+    else
+    {
+		if (m_current_anim_state != AnimState::Idle || m_current_anim_dir != dirFolder)
+			set_anim(AnimState::Idle, dirFolder);
+    }
+
+    advance_anim(dt);
+
+    // keep sprite at collission body position
+    if (m_sprite)
+        m_sprite->setPosition(m_body.getPosition());
 }
 
 void PlayerEntity::draw(sf::RenderTarget& target) const
@@ -160,7 +337,12 @@ void PlayerEntity::draw(sf::RenderTarget& target) const
 			return;
     }
 
+    // debug draw collision body
     target.draw(m_body);
+
+    if (m_sprite) {
+        target.draw(*m_sprite);
+    }
 
 	// show melee hitbox when active - FOR TESTING PURPOSES
     if (m_melee_active)
