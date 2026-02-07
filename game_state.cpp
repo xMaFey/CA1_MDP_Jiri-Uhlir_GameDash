@@ -232,15 +232,13 @@ bool GameState::Update(sf::Time dt)
     m_p1.update(dt, m_walls);
     m_p2.update(dt, m_walls);
 
-    // Shooting
-    if (m_p1.can_shoot())
+    // Shooting - spawn bullets only when shoot animation reaches release frame
+    if (m_p1.consume_shot_event())
     {
-        m_p1.on_shot_fired();
         m_bullets.emplace_back(m_p1.get_projectile_spawn_point(6.f), m_p1.facing_dir(), 1);
     }
-    if (m_p2.can_shoot())
+    if (m_p2.consume_shot_event())
     {
-        m_p2.on_shot_fired();
         m_bullets.emplace_back(m_p2.get_projectile_spawn_point(6.f), m_p2.facing_dir(), 2);
     }
 

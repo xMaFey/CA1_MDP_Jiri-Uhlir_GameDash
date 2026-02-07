@@ -38,9 +38,10 @@ public:
 
 	// Shooting interface
     bool can_shoot() const;
-    void on_shot_fired();
     sf::Vector2f facing_dir() const;
 	sf::Vector2f get_projectile_spawn_point(float projectile_radius) const;
+    void try_start_shoot_cast();
+    bool consume_shot_event();
 
     void respawn(sf::Vector2f p);
     bool is_invulnerable() const { return m_invulnerable; }
@@ -77,8 +78,10 @@ private:
     static std::string dir_to_folder(sf::Vector2f dir);
 
     // animation playback
-    void set_anim(AnimState st, const std::string& dirFolder);
+    bool set_anim(AnimState st, const std::string& dirFolder);
     void advance_anim(sf::Time dt);
+    bool m_anim_looping = true;
+    bool m_anim_finished = false;
     
 
 private:
@@ -118,6 +121,12 @@ private:
 
     // shooting
     sf::Keyboard::Scancode m_shoot{};
+
+    bool m_is_shoot_casting = false;
+    bool m_shot_event_ready = false;
+    bool m_shot_fired_this_cast = false;
+
+    std::size_t m_shoot_release_frame = 4;
 
     // melee attack
     sf::Keyboard::Scancode m_melee{};

@@ -90,7 +90,8 @@ void PlayerEntity::load_animations()
 {
     const std::vector<std::pair<std::string, std::string>> packs = {
         { "idle", "fight_stance"},
-        { "run", "running"}
+        { "run", "running"},
+        { "fireball", "fireball"}
     };
 
     const std::vector<std::string> dirs = {
@@ -134,19 +135,29 @@ void PlayerEntity::load_animations()
 
 }
 
-void PlayerEntity::set_anim(AnimState st, const std::string& dir)
+bool PlayerEntity::set_anim(AnimState st, const std::string& dir)
 {
-    m_current_anim_state = st;
-    m_current_anim_dir = dir;
+    // build the animation key prefix
+    std::string prefix = "idle/";
+    if (st == AnimState::Run) prefix = "run/";
+    if (st == AnimState::Shoot) prefix = "fireball/";
 
-    const std::string key = (st == AnimState::Idle ? "idle/" : "run/") + dir;
+    const std::string key = prefix + dir;
+
 
     auto it = m_anim_textures.find(key);
     if (it == m_anim_textures.end() || it->second.empty())
     {
     std::cout << "Missing anim key: " << key << "\n";
-    return;
+    return false;
     }
+
+    m_current_anim_state = st;
+    m_current_anim_dir = dir;
+
+    // looping rules
+    m_anim_looping = (st == AnimState::Idle || st == AnimState::Run);
+    m_anim_finished = false;
 
     m_frame_index = 0;
     m_frame_timer = sf::Time::Zero;
@@ -161,13 +172,25 @@ void PlayerEntity::set_anim(AnimState st, const std::string& dir)
         static_cast<float>(size.y) - m_feet_padding
     });
 	m_sprite->setScale({ 2.f, 2.f });
+
+    return true;
 }
 
 void PlayerEntity::advance_anim(sf::Time dt)
 {
-    const std::string key = (m_current_anim_state == AnimState::Idle ? "idle/" : "run/") + m_current_anim_dir;
+    std::string prefix = "idle/";
+    if (m_current_anim_state == AnimState::Run)
+        prefix = "run/";
+    if (m_current_anim_state == AnimState::Shoot)
+        prefix = "fireball/";
+
+    const std::string key = prefix + m_current_anim_dir;
+
     auto it = m_anim_textures.find(key);
     if (it == m_anim_textures.end() || it->second.empty())
+        return;
+
+    if (!m_anim_looping && m_anim_finished)
         return;
 
     m_frame_timer += dt;
@@ -175,8 +198,27 @@ void PlayerEntity::advance_anim(sf::Time dt)
         return;
 
     m_frame_timer = sf::Time::Zero;
-    m_frame_index = (m_frame_index + 1) % it->second.size();
-    if(m_sprite)
+
+    const std::size_t frameCount = it->second.size();
+
+    if (m_anim_looping)
+    {
+        m_frame_index = (m_frame_index + 1) % frameCount;
+    }
+    else
+    {
+        // one-shot, advance until the last frame, then mark finished
+        if (m_frame_index + 1 < frameCount)
+        {
+            ++m_frame_index;
+        }
+        else
+        {
+            m_anim_finished = true;
+        }
+    }
+
+    if (m_sprite)
         m_sprite->setTexture(it->second[m_frame_index], true);
 }
 
@@ -250,6 +292,7 @@ void PlayerEntity::handle_input(sf::Vector2f& dir) const
 void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& walls)
 {
     m_shoot_timer += dt;
+    try_start_shoot_cast();
 
     if(m_invulnerable)
     {
@@ -336,18 +379,53 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
 	const bool moving = (m_velocity.x != 0.f || m_velocity.y != 0.f);
     const std::string dirFolder = dir_to_folder(m_last_dir);
 
-    if (moving)
+    // do not override shooting animation with idle/run
+    const bool playingShoot = (m_current_anim_state == AnimState::Shoot && !m_anim_finished);
+
+    if (!playingShoot)
     {
-        if(m_current_anim_state != AnimState::Run || m_current_anim_dir != dirFolder)
-			set_anim(AnimState::Run, dirFolder);
-    }
-    else
-    {
-		if (m_current_anim_state != AnimState::Idle || m_current_anim_dir != dirFolder)
-			set_anim(AnimState::Idle, dirFolder);
+        if (moving)
+        {
+            if(m_current_anim_state != AnimState::Run || m_current_anim_dir != dirFolder)
+			        set_anim(AnimState::Run, dirFolder);
+        }
+        else
+        {
+            if (m_current_anim_state != AnimState::Idle || m_current_anim_dir != dirFolder)
+			        set_anim(AnimState::Idle, dirFolder);
+        }
     }
 
     advance_anim(dt);
+
+    // fire the projectile at chosen frame - for shooting
+    if (m_current_anim_state == AnimState::Shoot && m_is_shoot_casting)
+    {
+        if (!m_shot_fired_this_cast && m_frame_index >= m_shoot_release_frame)
+        {
+            // release now
+            m_shot_event_ready = true;
+            m_shot_fired_this_cast = true;
+
+            // start cd from actual release moment
+            m_shoot_timer = sf::Time::Zero;
+        }
+
+        // end cast when the animation finishes
+        if (m_anim_finished)
+        {
+            m_is_shoot_casting = false;
+        }
+    }
+
+    // if shoot finished this frame, return to next correct state frame
+    if (m_current_anim_state == AnimState::Shoot && m_anim_finished)
+    {
+        if (moving)
+            set_anim(AnimState::Run, dirFolder);
+        else
+            set_anim(AnimState::Idle, dirFolder);
+    }
 
     // keep sprite at collission body position
     if (m_sprite)
@@ -427,9 +505,26 @@ bool PlayerEntity::can_shoot() const
     return m_shoot_timer >= m_shoot_cd && sf::Keyboard::isKeyPressed(m_shoot);
 }
 
-void PlayerEntity::on_shot_fired()
+void PlayerEntity::try_start_shoot_cast()
 {
-    m_shoot_timer = sf::Time::Zero;
+    // only start if - key is held, cd is ready, no already casting
+    if (!sf::Keyboard::isKeyPressed(m_shoot)) return;
+    if (m_shoot_timer < m_shoot_cd) return;
+    if (m_is_shoot_casting) return;
+
+    // start casting animation
+    m_is_shoot_casting = true;
+    m_shot_fired_this_cast = false;
+    m_shot_event_ready = false;
+
+    set_anim(AnimState::Shoot, dir_to_folder(m_last_dir));
+}
+
+bool PlayerEntity::consume_shot_event()
+{
+    if (!m_shot_event_ready) return false;
+    m_shot_event_ready = false;
+    return true;
 }
 
 void PlayerEntity::respawn(sf::Vector2f p)
