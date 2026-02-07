@@ -40,6 +40,7 @@ public:
     bool can_shoot() const;
     void on_shot_fired();
     sf::Vector2f facing_dir() const;
+	sf::Vector2f get_projectile_spawn_point(float projectile_radius) const;
 
     void respawn(sf::Vector2f p);
     bool is_invulnerable() const { return m_invulnerable; }
@@ -51,8 +52,12 @@ public:
     // Wall colision
     static bool circle_rect_intersect(const sf::CircleShape& c, const sf::RectangleShape& r);
 
-    // Call for blue wizard
+    // Call for wizard animations
     void set_animation_root(const std::string& root);
+
+    // Hurtbox for combat
+    bool bullet_hits_hurtbox(sf::Vector2f point, float radius) const;
+	bool rect_hits_hurtbox(const sf::FloatRect& rect) const;
 
 private:
     void handle_input(sf::Vector2f& dir) const;
@@ -141,4 +146,8 @@ private:
 	bool m_invulnerable = false;
     sf::Time m_invulnerable_time = sf::Time::Zero;
     sf::Time m_invulnerable_duration = sf::seconds(1.5f);
+
+	// hurtbox for combat
+    static constexpr float hurtbox_height = 42.f; // vertical lenght
+	static constexpr float hurtbox_radius = 14.f; // thickness
 };

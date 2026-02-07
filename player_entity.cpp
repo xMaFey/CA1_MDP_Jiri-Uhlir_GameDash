@@ -22,6 +22,8 @@ PlayerEntity::PlayerEntity()
     set_controls_wasd();
 }
 
+static constexpr bool kDrawHurtboxDebug = true;
+
 static std::vector<std::filesystem::path> sorted_pngs(const std::filesystem::path& folder)
 {
     std::vector<std::filesystem::path> files;
@@ -180,6 +182,26 @@ void PlayerEntity::advance_anim(sf::Time dt)
 
 
 void PlayerEntity::set_position(sf::Vector2f p) { m_body.setPosition(p); }
+
+
+sf::Vector2f PlayerEntity::get_projectile_spawn_point(float projectile_radius) const
+{
+    const sf::Vector2f feet = m_body.getPosition();
+
+    // "hands" height
+    const sf::Vector2f hands = feet + sf::Vector2f(0.f, -hurtbox_height * 0.65f);
+
+    sf::Vector2f dir = m_last_dir;
+	const float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+    if (len > 0.f) { dir.x /= len; dir.y /= len; }
+	else { dir = { 1.f, 0.f }; }
+
+    // push spawn forward so it doesnt start inside your own hurtbox
+    const float forward = hurtbox_radius + projectile_radius + 6.f;
+
+    return hands + dir * forward;
+}
+
 sf::Vector2f PlayerEntity::position() const { return m_body.getPosition(); }
 void PlayerEntity::set_color(const sf::Color& c) { m_body.setOutlineColor(c); }
 
@@ -349,6 +371,40 @@ void PlayerEntity::draw(sf::RenderTarget& target) const
         target.draw(*m_sprite);
     }
 
+    // DEBUG: DRAW HURTBOX
+    if (kDrawHurtboxDebug) {
+        const sf::Vector2f feet = m_body.getPosition();
+        const sf::Vector2f torso = feet + sf::Vector2f(0.f, -hurtbox_height);
+
+        const float r = hurtbox_radius;
+        const sf::Color col(255, 0, 255, 180);
+
+        sf::CircleShape c(r);
+        c.setOrigin({ r, r });
+        c.setFillColor(sf::Color::Transparent);
+        c.setOutlineThickness(1.f);
+        c.setOutlineColor(sf::Color(col));
+
+        c.setPosition(feet);
+        target.draw(c);
+
+        c.setPosition(torso);
+        target.draw(c);
+
+        sf::Vertex leftLine[] = {
+            sf::Vertex({ feet.x - r, feet.y}, col),
+            sf::Vertex({ torso.x - r, torso.y}, col)
+        };
+
+        sf::Vertex rightLine[] = {
+            sf::Vertex({ feet.x + r, feet.y}, col),
+            sf::Vertex({ torso.x + r, torso.y}, col)
+        };
+
+        target.draw(leftLine, 2, sf::PrimitiveType::Lines);
+		target.draw(rightLine, 2, sf::PrimitiveType::Lines);
+    }
+
 	// show melee hitbox when active - FOR TESTING PURPOSES
     if (m_melee_active)
     {
@@ -398,7 +454,7 @@ sf::FloatRect PlayerEntity::get_melee_hitbox_world() const
     const float melee_width = 18.f;
 	const float radius = m_body.getRadius();
 
-	const sf::Vector2f p = m_body.getPosition();
+	const sf::Vector2f p = m_body.getPosition() + sf::Vector2f(0.f, -hurtbox_height * 0.65f);
 	const sf::Vector2f d = m_last_dir;
 
 	// decide if horizontal or vertical
@@ -442,6 +498,86 @@ bool PlayerEntity::circle_rect_intersect(const sf::CircleShape& c, const sf::Rec
     const float dy = cc.y - closest_y;
 
     return (dx * dx + dy * dy) <= (radius * radius);
+}
+
+static float dot(sf::Vector2f a, sf::Vector2f b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+
+static float len2(sf::Vector2f v)
+{
+    return v.x * v.x + v.y * v.y;
+}
+
+// segment vs rect collision
+static bool segment_intersect_rect(sf::Vector2f a, sf::Vector2f b, const sf::FloatRect& r)
+{
+    // Liang-Barsky algorithm
+    const float dx = b.x - a.x;
+    const float dy = b.y - a.y;
+
+    float t0 = 0.f, t1 = 1.f;
+
+    auto clip = [&](float p, float q) -> bool
+    {
+        if (p == 0.f)
+            return q >= 0.f;
+        const float t = q / p;
+        if (p < 0.f) {
+            if (t > t1) return false;
+            if (t > t0) t0 = t;
+        }
+        else
+        {
+            if (t < t0) return false;
+            if (t < t1) t1 = t;
+        }
+        return true;
+    };
+
+	if (!clip(-dx, a.x - r.position.x)) return false;
+	if (!clip(dx, (r.position.x + r.size.x) - a.x)) return false;
+	if (!clip(-dy, a.y - r.position.y)) return false;
+    if (!clip(dy, (r.position.y + r.size.y) - a.y)) return false;
+
+    return true;
+}
+
+bool PlayerEntity::bullet_hits_hurtbox(sf::Vector2f point, float radius) const
+{
+	const sf::Vector2f feet = m_body.getPosition();
+    const sf::Vector2f torso = feet + sf::Vector2f(0.f, -hurtbox_height);
+
+    const sf::Vector2f seg = torso - feet;
+    const float segLen2 = len2(seg);
+
+    float t = 0.f;
+    if (segLen2 > 0.f)
+        t = dot(point - feet, seg) / segLen2;
+	
+    t = std::clamp(t, 0.f, 1.f);
+    const sf::Vector2f closest = feet + seg * t;
+
+    const sf::Vector2f d = point - closest;
+    const float rr = radius + hurtbox_radius;
+
+    return (d.x * d.x + d.y * d.y) <= (rr * rr);
+}
+
+bool PlayerEntity::rect_hits_hurtbox(const sf::FloatRect& rect) const
+{
+    const sf::Vector2f feet = m_body.getPosition();
+    const sf::Vector2f torso = feet + sf::Vector2f(0.f, -hurtbox_height);
+
+	const float r = hurtbox_radius;
+
+    sf::FloatRect expanded(
+        { rect.position.x - r, rect.position.y - r },
+        { rect.size.x + 2.f * r, rect.size.y + 2.f * r }
+    );
+
+    return segment_intersect_rect(feet, torso, expanded);
 }
 
 void PlayerEntity::resolve_walls(const std::vector<sf::RectangleShape>& walls)

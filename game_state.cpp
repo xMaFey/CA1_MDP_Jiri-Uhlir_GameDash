@@ -10,6 +10,37 @@
 #include <sstream>
 #include <random>
 
+GameState::GameState(StateStack& stack, Context context)
+    : State(stack, context)
+    , m_window(*context.window)
+    , m_hud(context.fonts->Get(FontID::kMain))
+{
+    build_map();
+
+    m_p1.set_controls_wasd();
+    m_p1.set_color(sf::Color(255, 140, 90));
+    m_p1.set_position({ 260.f, 360.f });
+    m_p1.set_animation_root("Media/Assets/Characters/wizard_orange/animations/");
+
+
+    m_p2.set_controls_arrows();
+    m_p2.set_color(sf::Color(70, 200, 255));
+    m_p2.set_position({ 1020.f, 360.f });
+    m_p2.set_animation_root("Media/Assets/Characters/wizard_blue/animations/");
+
+    m_hud.setCharacterSize(22);
+    m_hud.setPosition({ 14.f, 10.f });
+
+    m_spawn_points =
+    {
+        {150.f, 140.f},
+        {150.f, 620.f},
+        {1130.f, 140.f},
+        {1130.f, 620.f},
+        {640.f, 360.f}
+    };
+}
+
 static int g_winner = 1;
 
 static float dist2(sf::Vector2f a, sf::Vector2f b)
@@ -85,37 +116,6 @@ static bool segment_hits_any_wall(sf::Vector2f a, sf::Vector2f b, const std::vec
 //
 //    return (dx * dx + dy * dy) <= (rr * rr);
 //}
-
-GameState::GameState(StateStack& stack, Context context)
-    : State(stack, context)
-    , m_window(*context.window)
-    , m_hud(context.fonts->Get(FontID::kMain))
-{
-    build_map();
-
-    m_p1.set_controls_wasd();
-    m_p1.set_color(sf::Color(255, 140, 90));
-    m_p1.set_position({ 260.f, 360.f });
-    m_p1.set_animation_root("Media/Assets/Characters/wizard_orange/animations/");
-
-
-    m_p2.set_controls_arrows();
-    m_p2.set_color(sf::Color(70, 200, 255));
-    m_p2.set_position({ 1020.f, 360.f });
-	m_p2.set_animation_root("Media/Assets/Characters/wizard_blue/animations/");
-
-    m_hud.setCharacterSize(22);
-    m_hud.setPosition({ 14.f, 10.f });
-
-    m_spawn_points =
-    { 
-        {150.f, 140.f},
-        {150.f, 620.f},
-        {1130.f, 140.f},
-        {1130.f, 620.f},
-        {640.f, 360.f}
-};
-}
 
 void GameState::build_map()
 {
@@ -236,12 +236,12 @@ bool GameState::Update(sf::Time dt)
     if (m_p1.can_shoot())
     {
         m_p1.on_shot_fired();
-        m_bullets.emplace_back(m_p1.position(), m_p1.facing_dir(), 1);
+        m_bullets.emplace_back(m_p1.get_projectile_spawn_point(6.f), m_p1.facing_dir(), 1);
     }
     if (m_p2.can_shoot())
     {
         m_p2.on_shot_fired();
-        m_bullets.emplace_back(m_p2.position(), m_p2.facing_dir(), 2);
+        m_bullets.emplace_back(m_p2.get_projectile_spawn_point(6.f), m_p2.facing_dir(), 2);
     }
 
     // Update bullets
@@ -264,43 +264,31 @@ bool GameState::Update(sf::Time dt)
     }
 
     // Bullet vs players - if invulnerable = ignore
-    auto hit_player = [&](const Bullet& bullet, const PlayerEntity& player) -> bool
-        {
-            const sf::Vector2f bp = bullet.shape().getPosition();
-            const sf::Vector2f pp = player.position();
-            const float rr = bullet.shape().getRadius() + 18.f; // player radius
-            const float dx = bp.x - pp.x;
-            const float dy = bp.y - pp.y;
-            return (dx * dx + dy * dy) <= (rr * rr);
-        };
-
     for (auto& b : m_bullets)
     {
         if (b.is_dead()) continue;
 
-        if (b.owner() == 1 && !m_p2.is_invulnerable() && hit_player(b, m_p2))
+        const sf::Vector2f bp = b.shape().getPosition();
+        const float br = b.shape().getRadius();
+
+        if (b.owner() == 1 && !m_p2.is_invulnerable() && m_p2.bullet_hits_hurtbox(bp, br))
         {
             b.kill();
             ++m_kills_p1;
-
             m_p2.respawn(pick_safe_spawn(m_p1));
         }
-        else if (b.owner() == 2 && !m_p1.is_invulnerable() && hit_player(b, m_p1))
+        else if (b.owner() == 2 && !m_p1.is_invulnerable() && m_p1.bullet_hits_hurtbox(bp, br))
         {
             b.kill();
             ++m_kills_p2;
-
             m_p1.respawn(pick_safe_spawn(m_p2));
         }
     }
 
-    // melee punch (rectangle)
-    const float player_radius = 18.f;
-
     // P1 melee hits P2
     if (m_p1.is_melee_active() && !m_p2.is_invulnerable())
     {
-        if (rect_circle_hit(m_p1.get_melee_hitbox_world(), m_p2.position(), player_radius))
+        if (m_p2.rect_hits_hurtbox(m_p1.get_melee_hitbox_world()))
         {
 			if (!segment_hits_any_wall(m_p1.position(), m_p2.position(), m_walls))
             {
@@ -313,7 +301,7 @@ bool GameState::Update(sf::Time dt)
     // P2 melee hits P1
     if (m_p2.is_melee_active() && !m_p1.is_invulnerable())
     {
-        if (rect_circle_hit(m_p2.get_melee_hitbox_world(), m_p1.position(), player_radius))
+        if (m_p1.rect_hits_hurtbox(m_p2.get_melee_hitbox_world()))
         {
             if (!segment_hits_any_wall(m_p2.position(), m_p1.position(), m_walls))
             {
