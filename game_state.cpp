@@ -96,6 +96,8 @@ GameState::GameState(StateStack& stack, Context context)
     m_p1.set_controls_wasd();
     m_p1.set_color(sf::Color(255, 140, 90));
     m_p1.set_position({ 260.f, 360.f });
+    m_p1.set_animation_root("Media/Assets/Characters/wizard_orange/animations/");
+
 
     m_p2.set_controls_arrows();
     m_p2.set_color(sf::Color(70, 200, 255));
@@ -209,8 +211,17 @@ void GameState::Draw()
     for (auto& w : m_walls) m_window.draw(w);
     for (auto& b : m_bullets) b.draw(m_window);
 
-    m_p1.draw(m_window);
-    m_p2.draw(m_window);
+    // depth sort
+    if (m_p1.position().y < m_p2.position().y)
+    {
+        m_p1.draw(m_window);
+        m_p2.draw(m_window);
+    }
+    else
+    {
+        m_p2.draw(m_window);
+        m_p1.draw(m_window);
+	}
 
     m_window.draw(m_hud);
 }

@@ -68,7 +68,7 @@ private:
 	};
 
     // animation loading
-    void load_blue_wizard_animations();
+    void load_animations();
     static std::string dir_to_folder(sf::Vector2f dir);
 
     // animation playback
@@ -92,7 +92,7 @@ private:
     std::size_t m_frame_index = 0;
     sf::Time m_frame_time = sf::seconds(0.10f);
 	sf::Time m_frame_timer = sf::Time::Zero;
-	float feetPadding = 12.f;
+	float m_feet_padding = 14.f;
 
     sf::CircleShape m_body;
     sf::Vector2f m_velocity{ 0.f, 0.f };

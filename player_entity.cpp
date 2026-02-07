@@ -42,7 +42,9 @@ static std::vector<std::filesystem::path> sorted_pngs(const std::filesystem::pat
 void PlayerEntity::set_animation_root(const std::string& root)
 {
     m_anim_root = root;
-    load_blue_wizard_animations();
+
+    m_anim_textures.clear();
+    load_animations();
 
     // default pose
     set_anim(AnimState::Idle, "east");
@@ -82,7 +84,7 @@ std::string PlayerEntity::dir_to_folder(sf::Vector2f d)
 	return "east";
 }
 
-void PlayerEntity::load_blue_wizard_animations()
+void PlayerEntity::load_animations()
 {
     const std::vector<std::pair<std::string, std::string>> packs = {
         { "idle", "fight_stance"},
@@ -154,7 +156,7 @@ void PlayerEntity::set_anim(AnimState st, const std::string& dir)
     auto size = m_sprite->getTexture().getSize();
     m_sprite->setOrigin({
         size.x * 0.5f,
-        static_cast<float>(size.y) - feetPadding
+        static_cast<float>(size.y) - m_feet_padding
     });
 	m_sprite->setScale({ 2.f, 2.f });
 }
