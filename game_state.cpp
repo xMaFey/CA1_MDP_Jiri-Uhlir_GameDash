@@ -235,11 +235,11 @@ bool GameState::Update(sf::Time dt)
     // Shooting - spawn bullets only when shoot animation reaches release frame
     if (m_p1.consume_shot_event())
     {
-        m_bullets.emplace_back(m_p1.get_projectile_spawn_point(6.f), m_p1.facing_dir(), 1);
+        m_bullets.emplace_back(m_p1.get_projectile_spawn_point(6.f), m_p1.facing_dir(), 1, Bullet::SpellType::Fire);
     }
     if (m_p2.consume_shot_event())
     {
-        m_bullets.emplace_back(m_p2.get_projectile_spawn_point(6.f), m_p2.facing_dir(), 2);
+        m_bullets.emplace_back(m_p2.get_projectile_spawn_point(6.f), m_p2.facing_dir(), 2, Bullet::SpellType::Water);
     }
 
     // Update bullets
