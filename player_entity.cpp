@@ -91,7 +91,8 @@ void PlayerEntity::load_animations()
     const std::vector<std::pair<std::string, std::string>> packs = {
         { "idle", "fight_stance"},
         { "run", "running"},
-        { "fireball", "fireball"}
+        { "fireball", "fireball"},
+        {"melee", "melee_attack"}
     };
 
     const std::vector<std::string> dirs = {
@@ -141,6 +142,7 @@ bool PlayerEntity::set_anim(AnimState st, const std::string& dir)
     std::string prefix = "idle/";
     if (st == AnimState::Run) prefix = "run/";
     if (st == AnimState::Shoot) prefix = "fireball/";
+    if (st == AnimState::Melee) prefix = "melee/";
 
     const std::string key = prefix + dir;
 
@@ -183,6 +185,8 @@ void PlayerEntity::advance_anim(sf::Time dt)
         prefix = "run/";
     if (m_current_anim_state == AnimState::Shoot)
         prefix = "fireball/";
+    if (m_current_anim_state == AnimState::Melee)
+        prefix = "melee/";
 
     const std::string key = prefix + m_current_anim_dir;
 
@@ -221,7 +225,6 @@ void PlayerEntity::advance_anim(sf::Time dt)
     if (m_sprite)
         m_sprite->setTexture(it->second[m_frame_index], true);
 }
-
 
 void PlayerEntity::set_position(sf::Vector2f p) { m_body.setPosition(p); }
 
@@ -337,14 +340,6 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
             m_dash_dir = { 1.f, 0.f };
 	}
 
-    // melee logic
-    if (melee_pressed && !m_melee_active && m_melee_cd_timer >= m_melee_cd)
-    {
-        m_melee_active = true;
-        m_melee_active_time = sf::Time::Zero;
-		m_melee_cd_timer = sf::Time::Zero;
-    }
-
     // dash overrides normal movement while active (dash is priority)
     if(m_is_dashing)
     {
@@ -381,8 +376,9 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
 
     // do not override shooting animation with idle/run
     const bool playingShoot = (m_current_anim_state == AnimState::Shoot && !m_anim_finished);
+    const bool playingMelee = (m_current_anim_state == AnimState::Melee && !m_anim_finished);
 
-    if (!playingShoot)
+    if (!playingShoot && !playingMelee)
     {
         if (moving)
         {
@@ -394,6 +390,17 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
             if (m_current_anim_state != AnimState::Idle || m_current_anim_dir != dirFolder)
 			        set_anim(AnimState::Idle, dirFolder);
         }
+    }
+
+    // melee logic, do not override shooting animation
+    if (melee_pressed && !playingShoot && !m_is_shoot_casting && !m_melee_active && m_melee_cd_timer >= m_melee_cd)
+    {
+        m_melee_active = true;
+        m_melee_active_time = sf::Time::Zero;
+        m_melee_cd_timer = sf::Time::Zero;
+
+        // play melee oneshot animation
+        set_anim(AnimState::Melee, dir_to_folder(m_last_dir));
     }
 
     advance_anim(dt);
@@ -420,6 +427,15 @@ void PlayerEntity::update(sf::Time dt, const std::vector<sf::RectangleShape>& wa
 
     // if shoot finished this frame, return to next correct state frame
     if (m_current_anim_state == AnimState::Shoot && m_anim_finished)
+    {
+        if (moving)
+            set_anim(AnimState::Run, dirFolder);
+        else
+            set_anim(AnimState::Idle, dirFolder);
+    }
+
+    // if melee attack finished, return to next correct state frame
+    if (m_current_anim_state == AnimState::Melee && m_anim_finished)
     {
         if (moving)
             set_anim(AnimState::Run, dirFolder);
@@ -550,33 +566,62 @@ sf::FloatRect PlayerEntity::get_melee_hitbox_world() const
 	const float radius = m_body.getRadius();
 
 	const sf::Vector2f p = m_body.getPosition() + sf::Vector2f(0.f, -hurtbox_height * 0.65f);
-	const sf::Vector2f d = m_last_dir;
 
-	// decide if horizontal or vertical
-    if (std::abs(d.x) >= std::abs(d.y))
+    const std::string dir = dir_to_folder(m_last_dir);
+
+    // create a rectangle centered at cx, cy
+    auto make_rect = [](float cx, float cy, float w, float h)
+        {
+            return sf::FloatRect({ cx - w * 0.5f, cy - h * 0.5f }, { w, h });
+        };
+
+
+    if (dir == "east")
     {
-        // horizontal
-		const float sign = (d.x >= 0.f) ? 1.f : -1.f;
-		const float cx = p.x + sign * (radius + melee_range * 0.5f);
-		const float cy = p.y;
-
-        return sf::FloatRect(
-            { cx - melee_range * 0.5f, cy - melee_width * 0.5f },
-            { melee_range, melee_width }
-        );
+        const float cx = p.x + (radius + melee_range * 0.5f);
+        const float cy = p.y;
+        return make_rect(cx, cy, melee_range, melee_width);
     }
-    else
+    if (dir == "west")
     {
-        // vertical
-		const float sign = (d.y >= 0.f) ? 1.f : -1.f;
-		const float cx = p.x;
-        const float cy = p.y + sign * (radius + melee_range * 0.5f);
-
-        return sf::FloatRect(
-            { cx - melee_width * 0.5f, cy - melee_range * 0.5f },
-            { melee_width, melee_range }
-		);
+        const float cx = p.x - (radius + melee_range * 0.5f);
+        const float cy = p.y;
+        return make_rect(cx, cy, melee_range, melee_width);
     }
+    if (dir == "south")
+    {
+        const float cx = p.x;
+        const float cy = p.y + (radius + melee_range * 0.5f);
+        return make_rect(cx, cy, melee_width, melee_range);
+    }
+    if (dir == "north")
+    {
+        const float cx = p.x;
+        const float cy = p.y - (radius + melee_range * 0.5f);
+        return make_rect(cx, cy, melee_width, melee_range);
+    }
+
+    const float diagSize = melee_range * 0.55f;
+    const float push = radius + diagSize * 0.5f;
+
+    if (dir == "north_east")
+    {
+        return make_rect(p.x + push, p.y - push, diagSize, diagSize);
+    }
+    if (dir == "north_west")
+    {
+        return make_rect(p.x - push, p.y - push, diagSize, diagSize);
+    }
+    if (dir == "south_east")
+    {
+        return make_rect(p.x + push, p.y + push, diagSize, diagSize);
+    }
+    if (dir == "south_west")
+    {
+        return make_rect(p.x - push, p.y + push, diagSize, diagSize);
+    }
+
+    return make_rect(p.x + (radius + melee_range * 0.5f), p.y, melee_range, melee_width);
 }
 
 bool PlayerEntity::circle_rect_intersect(const sf::CircleShape& c, const sf::RectangleShape& r)
