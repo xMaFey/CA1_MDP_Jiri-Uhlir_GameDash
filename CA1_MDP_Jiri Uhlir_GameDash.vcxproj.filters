@@ -96,6 +96,15 @@
     <ClCompile Include="game_over_state.cpp">
       <Filter>Core\States</Filter>
     </ClCompile>
+    <ClCompile Include="sound_id.cpp">
+      <Filter>Core\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sound_player.cpp">
+      <Filter>Core\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="music_player.cpp">
+      <Filter>Core\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="title_state.hpp">
@@ -190,6 +199,15 @@
     </ClInclude>
     <ClInclude Include="game_over_state.hpp">
       <Filter>Core\States</Filter>
+    </ClInclude>
+    <ClInclude Include="sound_id.hpp">
+      <Filter>Core\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sound_player.hpp">
+      <Filter>Core\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="music_player.hpp">
+      <Filter>Core\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

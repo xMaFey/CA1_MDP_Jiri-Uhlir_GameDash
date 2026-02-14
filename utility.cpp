@@ -3,7 +3,7 @@
 // Student ID: D00260335
 // ============================================
 
-#include "Utility.hpp"
+#include "utility.hpp"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <random>

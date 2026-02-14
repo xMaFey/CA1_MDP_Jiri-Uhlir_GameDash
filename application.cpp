@@ -13,7 +13,7 @@
 #include "settings_state.hpp"
 #include "game_over_state.hpp"
 
-Application::Application() : m_window(sf::VideoMode({ 1280, 720 }), "States", sf::Style::Close), m_stack(State::Context(m_window, m_textures, m_fonts, m_player))
+Application::Application() : m_window(sf::VideoMode({ 1280, 720 }), "States", sf::Style::Close), m_stack(State::Context(m_window, m_textures, m_fonts, m_player, m_sounds, m_music))
 {
 	m_window.setKeyRepeatEnabled(false);
 	m_fonts.Load(FontID::kMain, "Media/Fonts/Sansation.ttf");
@@ -24,6 +24,16 @@ Application::Application() : m_window(sf::VideoMode({ 1280, 720 }), "States", sf
 	m_textures.Load(TextureID::kButtonActivated, "Media/Textures/ButtonPressed.png");
 	m_textures.Load(TextureID::kBluePlayerWin, "Media/Textures/BluePlayerWin.png");
 	m_textures.Load(TextureID::kOrangePlayerWin, "Media/Textures/OrangePlayerWin.png");
+
+	m_sounds.Load(SoundID::kButton, "Media/Audio/sfx/button.wav");
+	m_sounds.Load(SoundID::kDash, "Media/Audio/sfx/dash.wav");
+	m_sounds.Load(SoundID::kFireSpell, "Media/Audio/sfx/fire_spell.wav");
+	m_sounds.Load(SoundID::kWaterSpell, "Media/Audio/sfx/water_spell.wav");
+	m_sounds.Load(SoundID::kFireHit, "Media/Audio/sfx/fire_hit.wav");
+	m_sounds.Load(SoundID::kWaterHit, "Media/Audio/sfx/water_hit.wav");
+
+	// volume
+	m_sounds.SetVolume(75.f);
 
 	RegisterStates();
 	m_stack.PushState(StateID::kTitle);

@@ -15,6 +15,8 @@ GameState::GameState(StateStack& stack, Context context)
     , m_window(*context.window)
     , m_hud(context.fonts->Get(FontID::kMain))
 {
+    GetContext().music->Stop();
+
     build_map();
 
     m_p1.set_controls_wasd();
@@ -235,10 +237,12 @@ bool GameState::Update(sf::Time dt)
     // Shooting - spawn bullets only when shoot animation reaches release frame
     if (m_p1.consume_shot_event())
     {
+        GetContext().sounds->Play(SoundID::kFireSpell);
         m_bullets.emplace_back(m_p1.get_projectile_spawn_point(6.f), m_p1.facing_dir(), 1, Bullet::SpellType::Fire);
     }
     if (m_p2.consume_shot_event())
     {
+        GetContext().sounds->Play(SoundID::kWaterSpell);
         m_bullets.emplace_back(m_p2.get_projectile_spawn_point(6.f), m_p2.facing_dir(), 2, Bullet::SpellType::Water);
     }
 
@@ -272,12 +276,14 @@ bool GameState::Update(sf::Time dt)
         if (b.owner() == 1 && !m_p2.is_invulnerable() && m_p2.bullet_hits_hurtbox(bp, br))
         {
             b.kill();
+            GetContext().sounds->Play(SoundID::kFireHit);
             ++m_kills_p1;
             m_p2.respawn(pick_safe_spawn(m_p1));
         }
         else if (b.owner() == 2 && !m_p1.is_invulnerable() && m_p1.bullet_hits_hurtbox(bp, br))
         {
             b.kill();
+            GetContext().sounds->Play(SoundID::kWaterHit);
             ++m_kills_p2;
             m_p1.respawn(pick_safe_spawn(m_p2));
         }

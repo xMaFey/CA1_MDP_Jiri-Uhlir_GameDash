@@ -10,6 +10,9 @@
 #include "resource_holder.hpp"
 #include "resource_identifiers.hpp"
 #include "statestack.hpp"
+#include "sound_player.hpp"
+#include "music_player.hpp"
+
 class Application
 {
 public:
@@ -30,5 +33,8 @@ private:
 	FontHolder m_fonts;
 
 	StateStack m_stack;
+
+	SoundPlayer m_sounds;
+	MusicPlayer m_music;
 };
 

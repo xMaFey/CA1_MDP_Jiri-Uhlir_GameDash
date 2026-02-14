@@ -3,7 +3,7 @@
 // Student ID: D00260335
 // ============================================
 
-#include "Component.hpp"
+#include "component.hpp"
 
 gui::Component::Component() : m_is_selected(false), m_is_active(false)
 {

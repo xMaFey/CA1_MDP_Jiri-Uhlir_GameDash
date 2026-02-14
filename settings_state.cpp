@@ -30,6 +30,7 @@ SettingsState::SettingsState(StateStack& stack, Context context)
     back->SetText("Back");
     back->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackPop();
         });
     back->setPosition({ view_size.x * 0.5f, view_size.y * 0.62f });

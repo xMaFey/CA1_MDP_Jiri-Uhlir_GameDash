@@ -3,7 +3,7 @@
 // Student ID: D00260335
 // ============================================
 
-#include "Statestack.hpp"
+#include "statestack.hpp"
 
 StateStack::PendingChange::PendingChange(StackActions action, StateID state_id) : action(action), state_id(state_id)
 {

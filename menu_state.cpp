@@ -17,6 +17,7 @@ MenuState::MenuState(StateStack& stack, Context context) : State(stack, context)
     play_button->SetText("Play");
     play_button->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackPop();
             RequestStackPush(StateID::kGame);
         });
@@ -26,6 +27,7 @@ MenuState::MenuState(StateStack& stack, Context context) : State(stack, context)
     settings_button->SetText("Settings");
     settings_button->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackPush(StateID::kSettings);
         });
 
@@ -34,12 +36,15 @@ MenuState::MenuState(StateStack& stack, Context context) : State(stack, context)
     exit_button->SetText("Exit");
     exit_button->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackPop();
         });
 
     m_gui_container.Pack(play_button);
     m_gui_container.Pack(settings_button);
     m_gui_container.Pack(exit_button);
+
+    GetContext().music->PlayLoop("Media/Audio/music/background.wav", 30.f);
 }
 
 void MenuState::Draw()

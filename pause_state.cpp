@@ -26,6 +26,7 @@ PauseState::PauseState(StateStack& stack, Context context) : State(stack, contex
     resume->SetText("Resume");
     resume->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackPop();
         });
     resume->setPosition(sf::Vector2f(0.5f * view_size.x, 0.50f * view_size.y));
@@ -36,6 +37,7 @@ PauseState::PauseState(StateStack& stack, Context context) : State(stack, contex
     back->SetText("Back to Menu");
     back->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackClear();
             RequestStackPush(StateID::kMenu);
         });

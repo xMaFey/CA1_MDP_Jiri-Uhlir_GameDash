@@ -12,6 +12,8 @@ TitleState::TitleState(StateStack& stack, Context context) : State(stack, contex
     m_text.setString("Press any key to continue");
     Utility::CentreOrigin(m_text);
     m_text.setPosition(context.window->getView().getSize() / 2.f);
+
+    GetContext().music->PlayLoop("Media/Audio/music/background.wav", 30.f);
 }
 
 void TitleState::Draw()

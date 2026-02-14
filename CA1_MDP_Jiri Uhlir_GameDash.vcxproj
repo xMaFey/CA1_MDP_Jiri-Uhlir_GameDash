@@ -114,7 +114,7 @@
 
 sfml-window-d.lib;
 
-sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+sfml-system-d.lib;sfml-audio-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,7 +133,7 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)external\SFML-3.0.1\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-window.lib;sfml-system.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-graphics.lib;sfml-window.lib;sfml-system.lib;sfml-audio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,10 +152,13 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClCompile Include="game_state.cpp" />
     <ClCompile Include="label.cpp" />
     <ClCompile Include="menu_state.cpp" />
+    <ClCompile Include="music_player.cpp" />
     <ClCompile Include="pause_state.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="player_entity.cpp" />
     <ClCompile Include="settings_state.cpp" />
+    <ClCompile Include="sound_id.cpp" />
+    <ClCompile Include="sound_player.cpp" />
     <ClCompile Include="state.cpp" />
     <ClCompile Include="statestack.cpp" />
     <ClCompile Include="texture_holder.cpp" />
@@ -179,6 +182,7 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClInclude Include="menu_options.hpp" />
     <ClInclude Include="menu_state.hpp" />
     <ClInclude Include="mission_status.hpp" />
+    <ClInclude Include="music_player.hpp" />
     <ClInclude Include="pause_state.hpp" />
     <ClInclude Include="player.hpp" />
     <ClInclude Include="player_entity.hpp" />
@@ -186,6 +190,8 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClInclude Include="resource_holder.hpp" />
     <ClInclude Include="resource_identifiers.hpp" />
     <ClInclude Include="settings_state.hpp" />
+    <ClInclude Include="sound_id.hpp" />
+    <ClInclude Include="sound_player.hpp" />
     <ClInclude Include="stack_actions.hpp" />
     <ClInclude Include="state.hpp" />
     <ClInclude Include="stateid.hpp" />

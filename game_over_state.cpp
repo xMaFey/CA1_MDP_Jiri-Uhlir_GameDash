@@ -18,6 +18,8 @@ GameOverState::GameOverState(StateStack& stack, Context context)
     , m_hint(context.fonts->Get(FontID::kMain))
     , m_gui()
 {
+    GetContext().music->PlayLoop("Media/Audio/music/background.wav", 30.f);
+
     sf::Vector2f view_size = context.window->getView().getSize();
 
     auto winner = context.player->GetWinner();
@@ -67,6 +69,7 @@ GameOverState::GameOverState(StateStack& stack, Context context)
 	play_again->setPosition({ view_size.x / 2.f - 100.f, view_size.y * 0.52f });
     play_again->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackClear();
             RequestStackPush(StateID::kGame);
 		});
@@ -76,6 +79,7 @@ GameOverState::GameOverState(StateStack& stack, Context context)
 	back_to_menu->setPosition({ view_size.x / 2.f - 100.f, view_size.y * 0.62f });
     back_to_menu->SetCallback([this]()
         {
+            GetContext().sounds->Play(SoundID::kButton);
             RequestStackClear();
             RequestStackPush(StateID::kMenu);
 		});
